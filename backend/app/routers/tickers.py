@@ -2,8 +2,11 @@
 
 from fastapi import APIRouter, HTTPException, Query
 
+from dataclasses import asdict
+
 from .. import market
 from ..config import ALLOWED_TICKERS, CHART_RANGES, DEFAULT_CHART_RANGE
+from ..prediction import predict
 
 router = APIRouter(prefix="/api/tickers", tags=["tickers"])
 
@@ -52,3 +55,9 @@ def chart(
 @router.get("/{ticker}/fundamentals")
 def fundamentals(ticker: str) -> dict:
     return _handle(market.get_fundamentals, ticker)
+
+
+@router.get("/{ticker}/prediction")
+def prediction(ticker: str) -> dict:
+    """AI buy/hold/sell suggestion with confidence (RF-08, RF-15, RF-24)."""
+    return asdict(_handle(predict, ticker))
