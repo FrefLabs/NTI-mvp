@@ -1,0 +1,35 @@
+/* Design tokens — extracted verbatim from the approved design mockup. */
+:root {
+  /* === color: base grayscale, hue-biased 1-2deg toward amber so it reads chosen === */
+  --bg-0: #08090a;
+  --bg-1: #0e1012;
+  --bg-2: #141618;
+  --bg-3: #1b1e21;
+  --line-0: #232629;
+  --line-1: #2c3033;
+  --text-0: #edeef0;
+  --text-1: #a7abb0;
+  --text-2: #6c7075;
+  --text-3: #454850;
+
+  /* market state — desaturated, gradient-capable */
+  --up-500: #34d399;
+  --up-700: #0e7d55;
+  --up-glow: #34d39926;
+  --down-500: #f2495c;
+  --down-700: #9c1f30;
+  --down-glow: #f2495c26;
+
+  /* AI accent — amber/gold, reserved exclusively for prediction/AI elements */
+  --ai-300: #ffcf70;
+  --ai-500: #f0a628;
+  --ai-700: #8a5a0d;
+  --ai-glow: #f0a62822;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  --mono: ui-monospace, "JetBrains Mono", "Geist Mono", "SF Mono", "Cascadia Code",
+    Consolas, "Roboto Mono", monospace;
+}
