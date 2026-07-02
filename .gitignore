@@ -1,0 +1,32 @@
+# Reference documents (heavy binaries; source of truth kept outside git)
+docs/*.zip
+docs/*.docx
+docs/*.xlsx
+docs/*.drawio
+docs/*.png
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# SQLite database
+backend/*.db
+backend/*.sqlite3
+
+# Node / frontend
+node_modules/
+frontend/dist/
+
+# Environment
+.env
+.env.*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
