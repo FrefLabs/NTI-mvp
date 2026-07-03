@@ -1,9 +1,11 @@
-"""Application configuration constants."""
+"""Application configuration, driven by environment variables."""
 
+import os
 from pathlib import Path
 
-# The MVP is restricted to exactly these two tickers (MVP R2 scope).
-ALLOWED_TICKERS: dict[str, str] = {
+# Featured tickers shown by default in the UI (MVP R2 scope). Any valid
+# Yahoo Finance ticker is accepted by the API; these are just the defaults.
+DEFAULT_TICKERS: dict[str, str] = {
     "KO": "The Coca-Cola Company",
     "NVDA": "NVIDIA Corporation",
 }
@@ -21,6 +23,14 @@ CHART_RANGES: dict[str, tuple[str, str]] = {
 
 DEFAULT_CHART_RANGE = "6mo"
 
-# SQLite cache: avoids hammering Yahoo Finance on every request.
-DATABASE_PATH = Path(__file__).resolve().parent.parent / "nti.db"
-CACHE_TTL_SECONDS = 300
+DATABASE_PATH = Path(
+    os.getenv("DATABASE_PATH", str(Path(__file__).resolve().parent.parent / "nti.db"))
+)
+SCHEDULER_TIME = os.getenv("SCHEDULER_TIME", "17:00")
+SCHEDULER_TIMEZONE = os.getenv("SCHEDULER_TIMEZONE", "America/Argentina/Buenos_Aires")
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
+API_PORT = int(os.getenv("API_PORT", "8000"))
