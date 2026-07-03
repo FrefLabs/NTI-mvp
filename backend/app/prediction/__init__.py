@@ -9,6 +9,6 @@ This boundary exists so the placeholder heuristic can be swapped for a real
 TensorFlow/Keras model in a later phase without touching any caller.
 """
 
-from ._engine import Prediction, predict
+from ._engine import Prediction, predict, run_backtest
 
-__all__ = ["Prediction", "predict"]
+__all__ = ["Prediction", "predict", "run_backtest"]

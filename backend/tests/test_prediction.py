@@ -29,15 +29,25 @@ def test_predict_rejects_unknown_ticker():
     from app.market import UnknownTickerError
 
     with pytest.raises(UnknownTickerError):
-        predict("AAPL")
+        predict("ZZZZZZZZZZ")
 
 
-def test_prediction_endpoint(client):
+def test_prediction_endpoint_logs_to_database(client):
+    from app import database
+
     response = client.get("/api/tickers/KO/prediction")
     assert response.status_code == 200
     data = response.json()
     assert data["signal"] in {"buy", "hold", "sell"}
     assert 0 <= data["confidence"] <= 100
+
+    with database._connect() as conn:
+        rows = conn.execute(
+            "SELECT ticker, signal FROM prediction_log"
+        ).fetchall()
+    assert [(row["ticker"], row["signal"]) for row in rows] == [
+        ("KO", data["signal"])
+    ]
 
 
 def test_no_external_imports_of_prediction_internals():

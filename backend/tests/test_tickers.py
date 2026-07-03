@@ -1,5 +1,5 @@
-"""Endpoint tests: valid tickers hit real yfinance data; invalid tickers
-are rejected; upstream failures produce a clean error response (RNF-14)."""
+"""Endpoint tests: valid tickers hit real yfinance data; unknown tickers
+return 404; upstream failures produce a clean error response (RNF-14)."""
 
 import pytest
 
@@ -23,6 +23,13 @@ def test_quote_valid_ticker(client, ticker):
     assert isinstance(data["change_percent"], float)
 
 
+def test_quote_any_yahoo_ticker(client):
+    """The API is no longer restricted to KO/NVDA."""
+    response = client.get("/api/tickers/AAPL/quote")
+    assert response.status_code == 200
+    assert response.json()["ticker"] == "AAPL"
+
+
 @pytest.mark.parametrize("ticker", ["KO", "NVDA"])
 def test_chart_valid_ticker(client, ticker):
     response = client.get(f"/api/tickers/{ticker}/chart?range=1mo")
@@ -41,23 +48,21 @@ def test_fundamentals_valid_ticker(client):
     assert response.status_code == 200
     data = response.json()
     assert data["ticker"] == "KO"
-    assert data["name"] == "The Coca-Cola Company"
+    assert data["name"]
     assert data["market_cap"] and data["market_cap"] > 0
 
 
 @pytest.mark.parametrize(
     "path",
     [
-        "/api/tickers/AAPL/quote",
-        "/api/tickers/AAPL/chart",
-        "/api/tickers/AAPL/fundamentals",
-        "/api/tickers/lowercase-junk/quote",
+        "/api/tickers/ZZZZZZZZZZ/chart?range=1mo",
+        "/api/tickers/lowercase-junk-symbol/quote",
     ],
 )
-def test_invalid_ticker_rejected(client, path):
+def test_unknown_ticker_returns_404(client, path):
     response = client.get(path)
     assert response.status_code == 404
-    assert "Available tickers: KO, NVDA" in response.json()["detail"]
+    assert "not found on Yahoo Finance" in response.json()["detail"]
 
 
 def test_invalid_chart_range_rejected(client):
