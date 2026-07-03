@@ -1,61 +1,78 @@
-import { useCallback, useEffect, useState } from "react";
-import { fetchChart, fetchPrediction, fetchQuote } from "./api.js";
+import { useState } from "react";
+import {
+  fetchChart,
+  fetchFundamentals,
+  fetchPrediction,
+  fetchQuote,
+} from "./api.js";
+import useApiData from "./hooks/useApiData.js";
 import TopBar from "./components/TopBar.jsx";
 import TickerRow from "./components/TickerRow.jsx";
 import PriceCard from "./components/PriceCard.jsx";
 import PredictionPanel from "./components/PredictionPanel.jsx";
-
-const TICKERS = [
-  { ticker: "KO", name: "Coca-Cola Co." },
-  { ticker: "NVDA", name: "NVIDIA Corp." },
-];
+import FundamentalsSection from "./components/FundamentalsSection.jsx";
+import TickerNews from "./components/TickerNews.jsx";
+import ComparisonView from "./components/ComparisonView.jsx";
 
 const DEFAULT_RANGE = "6mo";
-
-function useApiData(loader, deps) {
-  const [state, setState] = useState({ data: null, error: null, loading: true });
-  const load = useCallback(loader, deps);
-
-  useEffect(() => {
-    let cancelled = false;
-    setState({ data: null, error: null, loading: true });
-    load()
-      .then((data) => !cancelled && setState({ data, error: null, loading: false }))
-      .catch(
-        (error) =>
-          !cancelled && setState({ data: null, error: error.message, loading: false })
-      );
-    return () => {
-      cancelled = true;
-    };
-  }, [load]);
-
-  return state;
-}
 
 export default function App() {
   const [ticker, setTicker] = useState("KO");
   const [range, setRange] = useState(DEFAULT_RANGE);
+  const [comparing, setComparing] = useState(false);
+  const [compareTicker, setCompareTicker] = useState(null);
 
   const quote = useApiData(() => fetchQuote(ticker), [ticker]);
   const chart = useApiData(() => fetchChart(ticker, range), [ticker, range]);
   const prediction = useApiData(() => fetchPrediction(ticker), [ticker]);
+  const fundamentals = useApiData(() => fetchFundamentals(ticker), [ticker]);
 
   const live = !quote.loading && !quote.error;
+
+  const changeTicker = (next) => {
+    setTicker(next);
+    setComparing(false);
+    setCompareTicker(null);
+  };
+
+  const toggleCompare = () => {
+    setComparing((v) => !v);
+    setCompareTicker(null);
+  };
 
   return (
     <div className="app">
       <TopBar live={live} />
       <TickerRow
-        tickers={TICKERS}
         ticker={ticker}
-        onTicker={setTicker}
+        onTicker={changeTicker}
         range={range}
         onRange={setRange}
+        comparing={comparing}
+        onToggleCompare={toggleCompare}
       />
-      <div className="grid">
-        <PriceCard ticker={ticker} quote={quote} chart={chart} />
-        <PredictionPanel prediction={prediction} />
+      <div className={comparing ? "grid grid-compare" : "grid"}>
+        <div className="main-col">
+          <PriceCard
+            ticker={ticker}
+            quote={quote}
+            chart={chart}
+            fundamentals={fundamentals}
+          />
+          <FundamentalsSection ticker={ticker} fundamentals={fundamentals} />
+          <TickerNews ticker={ticker} />
+        </div>
+        {comparing && (
+          <div className="main-col">
+            <ComparisonView
+              ticker={compareTicker}
+              range={range}
+              onSelect={setCompareTicker}
+              onClose={toggleCompare}
+            />
+          </div>
+        )}
+        <PredictionPanel prediction={prediction} fundamentals={fundamentals} />
       </div>
       <div className="disclaimer">
         <span className="glyph">&#9888;</span>
@@ -70,7 +87,7 @@ export default function App() {
         </p>
       </div>
       <div className="footnote">
-        Fuente de datos: Yahoo Finance (yfinance) — KO · NVDA únicamente
+        Fuente de datos: Yahoo Finance (yfinance)
       </div>
     </div>
   );

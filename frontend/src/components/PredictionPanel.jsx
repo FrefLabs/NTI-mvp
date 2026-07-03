@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { formatBig, money, percent, ratio } from "../format.js";
+
 const SIGNAL_LABELS = { buy: "Comprar", hold: "Mantener", sell: "Vender" };
 
 function rsiZone(rsi) {
@@ -6,39 +9,19 @@ function rsiZone(rsi) {
   return `${rsi.toFixed(1)} — neutral`;
 }
 
-function NetDiagram() {
+function Row({ k, children }) {
   return (
-    <svg className="net-diagram" viewBox="0 0 300 70" width="100%" height="70">
-      <g stroke="#2c3033" strokeWidth="1">
-        <line x1="30" y1="15" x2="130" y2="12" />
-        <line x1="30" y1="15" x2="130" y2="35" />
-        <line x1="30" y1="15" x2="130" y2="58" />
-        <line x1="30" y1="35" x2="130" y2="12" />
-        <line x1="30" y1="35" x2="130" y2="35" />
-        <line x1="30" y1="35" x2="130" y2="58" />
-        <line x1="30" y1="55" x2="130" y2="12" />
-        <line x1="30" y1="55" x2="130" y2="35" />
-        <line x1="30" y1="55" x2="130" y2="58" />
-        <line x1="130" y1="12" x2="230" y2="35" />
-        <line x1="130" y1="35" x2="230" y2="35" />
-        <line x1="130" y1="58" x2="230" y2="35" />
-      </g>
-      <g fill="#0e1012" stroke="#454850" strokeWidth="1">
-        <circle cx="30" cy="15" r="5" />
-        <circle cx="30" cy="35" r="5" />
-        <circle cx="30" cy="55" r="5" />
-        <circle cx="130" cy="12" r="5" />
-        <circle cx="130" cy="35" r="5" />
-        <circle cx="130" cy="58" r="5" />
-      </g>
-      <circle cx="230" cy="35" r="7" fill="#0e1012" stroke="#f0a628" strokeWidth="1.5" />
-      <circle cx="230" cy="35" r="12" fill="none" stroke="#f0a62844" strokeWidth="1" />
-    </svg>
+    <div className="indicator-row">
+      <span className="k">{k}</span>
+      <span className="v">{children}</span>
+    </div>
   );
 }
 
-export default function PredictionPanel({ prediction }) {
+export default function PredictionPanel({ prediction, fundamentals }) {
+  const [expanded, setExpanded] = useState(false);
   const data = prediction.data;
+  const funda = fundamentals?.data;
   const filled = data ? Math.round((data.confidence / 100) * 20) : 0;
   const smaBullish = data && data.indicators.sma_short >= data.indicators.sma_long;
 
@@ -48,8 +31,6 @@ export default function PredictionPanel({ prediction }) {
         <h2>Sugerencia del modelo</h2>
         <span className="ai-tag">IA</span>
       </div>
-
-      <NetDiagram />
 
       {prediction.loading && <div className="panel-state">Calculando señal…</div>}
       {prediction.error && (
@@ -78,9 +59,7 @@ export default function PredictionPanel({ prediction }) {
             </div>
           </div>
 
-          <div className="divider-ascii">
-            {"· ".repeat(60).trim()}
-          </div>
+          <div className="divider-ascii">{"· ".repeat(60).trim()}</div>
 
           <div className="indicators">
             <div className="indicator-row">
@@ -89,19 +68,47 @@ export default function PredictionPanel({ prediction }) {
                 {smaBullish ? "Cruce alcista" : "Cruce bajista"}
               </span>
             </div>
-            <div className="indicator-row">
-              <span className="k">RSI (14)</span>
-              <span className="v">{rsiZone(data.indicators.rsi)}</span>
-            </div>
-            <div className="indicator-row">
-              <span className="k">Último cierre</span>
-              <span className="v">${data.indicators.close.toFixed(2)}</span>
-            </div>
-            <div className="indicator-row">
-              <span className="k">Modelo</span>
-              <span className="v">Heurístico v0.1</span>
-            </div>
+            <Row k="RSI (14)">{rsiZone(data.indicators.rsi)}</Row>
+            <Row k="Último cierre">${data.indicators.close.toFixed(2)}</Row>
+            <Row k="Modelo">Heurístico v0.1</Row>
           </div>
+        </>
+      )}
+
+      <div className="divider-ascii">{"· ".repeat(60).trim()}</div>
+
+      <div className="panel-subtitle">Fundamentals</div>
+      {fundamentals?.loading && (
+        <div className="panel-state">Cargando fundamentals…</div>
+      )}
+      {fundamentals?.error && (
+        <div className="panel-state error">{fundamentals.error}</div>
+      )}
+      {funda && (
+        <>
+          <div className="indicators">
+            <Row k="Sector">{funda.sector ?? "—"}</Row>
+            <Row k="Industria">{funda.industry ?? "—"}</Row>
+            <Row k="Market Cap">{formatBig(funda.market_cap, "$")}</Row>
+            <Row k="P/E (trailing)">{ratio(funda.trailing_pe)}</Row>
+            {expanded && (
+              <>
+                <Row k="P/E (forward)">{ratio(funda.forward_pe)}</Row>
+                <Row k="Dividend yield">{percent(funda.dividend_yield)}</Row>
+                <Row k="Beta">{ratio(funda.beta)}</Row>
+                <Row k="Rango 52 sem.">
+                  {funda.fifty_two_week_low != null &&
+                  funda.fifty_two_week_high != null
+                    ? `${money(funda.fifty_two_week_low)} – ${money(funda.fifty_two_week_high)}`
+                    : "—"}
+                </Row>
+                <Row k="Vol. promedio">{formatBig(funda.average_volume)}</Row>
+              </>
+            )}
+          </div>
+          <button className="see-more" onClick={() => setExpanded((v) => !v)}>
+            {expanded ? "Ver menos ▴" : "Ver más ▾"}
+          </button>
         </>
       )}
     </div>

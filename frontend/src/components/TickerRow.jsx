@@ -1,3 +1,6 @@
+import { exportCsvUrl } from "../api.js";
+import TickerSearch from "./TickerSearch.jsx";
+
 const TIMEFRAMES = [
   { key: "1d", label: "1D" },
   { key: "1mo", label: "1M" },
@@ -6,20 +9,36 @@ const TIMEFRAMES = [
   { key: "5y", label: "5Y" },
 ];
 
-export default function TickerRow({ tickers, ticker, onTicker, range, onRange }) {
+export default function TickerRow({
+  ticker,
+  onTicker,
+  range,
+  onRange,
+  comparing,
+  onToggleCompare,
+}) {
+  const downloadCsv = () => {
+    const link = document.createElement("a");
+    link.href = exportCsvUrl(ticker, range);
+    link.download = "";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
     <div className="ticker-row">
-      <div className="ticker-toggle">
-        {tickers.map((t) => (
-          <button
-            key={t.ticker}
-            className={t.ticker === ticker ? "ticker-opt active" : "ticker-opt"}
-            onClick={() => onTicker(t.ticker)}
-          >
-            {t.ticker}
-            <span className="name">{t.name}</span>
-          </button>
-        ))}
+      <div className="ticker-controls">
+        <TickerSearch ticker={ticker} onSelect={onTicker} />
+        <button
+          className={comparing ? "action-btn active" : "action-btn"}
+          onClick={onToggleCompare}
+        >
+          {comparing ? "× Comparación" : "+ Comparar"}
+        </button>
+        <button className="action-btn" onClick={downloadCsv}>
+          ↓ Exportar CSV
+        </button>
       </div>
       <div className="timeframes">
         {TIMEFRAMES.map((tf) => (
