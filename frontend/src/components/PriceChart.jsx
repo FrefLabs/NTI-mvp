@@ -1,134 +1,138 @@
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  CandlestickSeries,
+  createChart,
+  CrosshairMode,
+  LineStyle,
+} from "lightweight-charts";
 
-const WIDTH = 640;
-const HEIGHT = 220;
-const PAD_TOP = 16;
-const PAD_BOTTOM = 16;
+const UP = "#34d399";
+const DOWN = "#f2495c";
 
-function formatTime(iso, range) {
-  const date = new Date(iso);
-  if (range === "1d") {
-    return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+function toSeriesData(points) {
+  const seen = new Set();
+  const data = [];
+  for (const p of points) {
+    if (p.open == null || p.high == null || p.low == null || p.close == null) {
+      continue;
+    }
+    const time = Math.floor(new Date(p.time).getTime() / 1000);
+    if (seen.has(time)) continue;
+    seen.add(time);
+    data.push({ time, open: p.open, high: p.high, low: p.low, close: p.close });
+  }
+  return data.sort((a, b) => a.time - b.time);
+}
+
+function formatTooltipTime(unixSeconds, intraday) {
+  const date = new Date(unixSeconds * 1000);
+  if (intraday) {
+    return date.toLocaleString("es-AR", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
   return date.toLocaleDateString("es-AR", {
     day: "2-digit",
     month: "short",
-    year: range === "5y" || range === "1y" ? "2-digit" : undefined,
+    year: "numeric",
   });
 }
 
 export default function PriceChart({ chart }) {
-  const [hover, setHover] = useState(null);
+  const containerRef = useRef(null);
+  const [tooltip, setTooltip] = useState(null);
 
-  const geometry = useMemo(() => {
-    if (!chart.data) return null;
-    const points = chart.data.points.filter((p) => p.close != null);
-    if (points.length < 2) return null;
+  const points = chart.data?.points;
+  const range = chart.data?.range;
+  const intraday = range === "1d" || range === "5d";
 
-    const closes = points.map((p) => p.close);
-    const min = Math.min(...closes);
-    const max = Math.max(...closes);
-    const span = max - min || 1;
-    const usable = HEIGHT - PAD_TOP - PAD_BOTTOM;
+  useEffect(() => {
+    if (!containerRef.current || !points) return undefined;
+    const data = toSeriesData(points);
+    if (data.length < 2) return undefined;
 
-    const coords = points.map((p, i) => ({
-      x: (i / (points.length - 1)) * WIDTH,
-      y: PAD_TOP + (1 - (p.close - min) / span) * usable,
-      point: p,
-    }));
-    const up = closes[closes.length - 1] >= closes[0];
-    const line = coords.map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" L");
-    return {
-      coords,
-      up,
-      linePath: `M${line}`,
-      areaPath: `M0,${HEIGHT} L${line} L${WIDTH},${HEIGHT} Z`,
-      last: coords[coords.length - 1],
+    const chartApi = createChart(containerRef.current, {
+      autoSize: true,
+      layout: {
+        background: { color: "transparent" },
+        textColor: "#6c7075",
+        fontFamily:
+          'ui-monospace, "JetBrains Mono", "SF Mono", Consolas, monospace',
+        fontSize: 10,
+        attributionLogo: false,
+      },
+      grid: {
+        vertLines: { color: "#1b1e21" },
+        horzLines: { color: "#1b1e21" },
+      },
+      crosshair: {
+        mode: CrosshairMode.Magnet,
+        vertLine: {
+          color: "#454850",
+          style: LineStyle.Dashed,
+          labelBackgroundColor: "#1b1e21",
+        },
+        horzLine: {
+          color: "#454850",
+          style: LineStyle.Dashed,
+          labelBackgroundColor: "#1b1e21",
+        },
+      },
+      rightPriceScale: { borderColor: "#232629" },
+      timeScale: {
+        borderColor: "#232629",
+        timeVisible: intraday,
+        secondsVisible: false,
+      },
+      localization: { locale: "es-AR" },
+    });
+
+    const series = chartApi.addSeries(CandlestickSeries, {
+      upColor: UP,
+      downColor: DOWN,
+      borderVisible: false,
+      wickUpColor: UP,
+      wickDownColor: DOWN,
+      priceLineVisible: true,
+      lastValueVisible: true,
+    });
+    series.setData(data);
+    chartApi.timeScale().fitContent();
+
+    chartApi.subscribeCrosshairMove((param) => {
+      const bar = param.time != null ? param.seriesData.get(series) : null;
+      setTooltip(bar ? { time: param.time, ...bar } : null);
+    });
+
+    return () => {
+      setTooltip(null);
+      chartApi.remove();
     };
-  }, [chart.data]);
+  }, [points, intraday]);
 
   if (chart.loading) return <div className="chart-state">Cargando datos…</div>;
   if (chart.error) return <div className="chart-state error">{chart.error}</div>;
-  if (!geometry) return <div className="chart-state">Sin datos suficientes</div>;
-
-  const color = geometry.up ? "var(--up-500)" : "var(--down-500)";
-  const gradientId = geometry.up ? "fillUp" : "fillDown";
-  const range = chart.data.range;
-
-  const onMove = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * WIDTH;
-    const index = Math.round((x / WIDTH) * (geometry.coords.length - 1));
-    setHover(geometry.coords[Math.max(0, Math.min(index, geometry.coords.length - 1))]);
-  };
-
-  const axisLabels = [0, 0.25, 0.5, 0.75, 1].map((f) => {
-    const point = chart.data.points[Math.round(f * (chart.data.points.length - 1))];
-    return formatTime(point.time, range);
-  });
+  if (!points || toSeriesData(points).length < 2) {
+    return <div className="chart-state">Sin datos suficientes</div>;
+  }
 
   return (
     <div className="chart-wrap">
-      <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        preserveAspectRatio="none"
-        onMouseMove={onMove}
-        onMouseLeave={() => setHover(null)}
-      >
-        <defs>
-          <linearGradient id="fillUp" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#34d399" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="fillDown" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f2495c" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#f2495c" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <g stroke="#1e2124" strokeWidth="1">
-          <line x1="0" y1="36" x2={WIDTH} y2="36" />
-          <line x1="0" y1="92" x2={WIDTH} y2="92" />
-          <line x1="0" y1="148" x2={WIDTH} y2="148" />
-          <line x1="0" y1="204" x2={WIDTH} y2="204" />
-        </g>
-        <path d={geometry.areaPath} fill={`url(#${gradientId})`} />
-        <path d={geometry.linePath} fill="none" stroke={color} strokeWidth="2" />
-        {hover ? (
-          <g>
-            <line
-              x1={hover.x}
-              y1="0"
-              x2={hover.x}
-              y2={HEIGHT}
-              stroke="#454850"
-              strokeWidth="1"
-              strokeDasharray="3 3"
-            />
-            <circle cx={hover.x} cy={hover.y} r="4" fill={color} />
-          </g>
-        ) : (
-          <g>
-            <circle cx={geometry.last.x} cy={geometry.last.y} r="4" fill={color} />
-            <circle
-              cx={geometry.last.x}
-              cy={geometry.last.y}
-              r="8"
-              fill={color}
-              opacity="0.2"
-            />
-          </g>
-        )}
-      </svg>
-      {hover && (
+      <div className="lw-chart" ref={containerRef} />
+      {tooltip && (
         <div className="chart-tooltip">
-          {formatTime(hover.point.time, range)} · ${hover.point.close.toFixed(2)}
+          <span className="t">{formatTooltipTime(tooltip.time, intraday)}</span>
+          <span>A ${tooltip.open.toFixed(2)}</span>
+          <span>M ${tooltip.high.toFixed(2)}</span>
+          <span>m ${tooltip.low.toFixed(2)}</span>
+          <span className={tooltip.close >= tooltip.open ? "up" : "down"}>
+            C ${tooltip.close.toFixed(2)}
+          </span>
         </div>
       )}
-      <div className="chart-axis-labels">
-        {axisLabels.map((label, i) => (
-          <span key={i}>{label}</span>
-        ))}
-      </div>
     </div>
   );
 }
