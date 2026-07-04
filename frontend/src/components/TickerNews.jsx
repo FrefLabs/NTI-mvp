@@ -6,7 +6,7 @@ export default function TickerNews({ ticker }) {
   const news = useApiData(() => fetchNews(ticker), [ticker]);
 
   return (
-    <div className="card">
+    <div className="card news-card">
       <div className="panel-title">
         <h2>Noticias — {ticker}</h2>
       </div>
