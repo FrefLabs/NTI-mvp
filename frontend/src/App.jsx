@@ -22,7 +22,9 @@ export default function App() {
   const [comparing, setComparing] = useState(false);
   const [compareTicker, setCompareTicker] = useState(null);
   const mainColRef = useRef(null);
+  const compareColRef = useRef(null);
   const [mainColHeight, setMainColHeight] = useState(null);
+  const [compareColHeight, setCompareColHeight] = useState(null);
 
   useEffect(() => {
     const el = mainColRef.current;
@@ -33,6 +35,23 @@ export default function App() {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    const el = compareColRef.current;
+    if (!el) {
+      setCompareColHeight(null);
+      return;
+    }
+    const ro = new ResizeObserver(([entry]) => {
+      setCompareColHeight(entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [comparing]);
+
+  const sideColHeight = compareColHeight
+    ? Math.max(mainColHeight ?? 0, compareColHeight)
+    : mainColHeight;
 
   const quote = useApiData(() => fetchQuote(ticker), [ticker]);
   const chart = useApiData(() => fetchChart(ticker, range), [ticker, range]);
@@ -74,7 +93,7 @@ export default function App() {
           <FundamentalsSection ticker={ticker} fundamentals={fundamentals} />
         </div>
         {comparing && (
-          <div className="main-col">
+          <div className="main-col" ref={compareColRef}>
             <ComparisonView
               ticker={compareTicker}
               range={range}
@@ -85,7 +104,7 @@ export default function App() {
         )}
         <div
           className="side-col"
-          style={mainColHeight ? { height: mainColHeight } : undefined}
+          style={sideColHeight ? { height: sideColHeight } : undefined}
         >
           <PredictionPanel prediction={prediction} fundamentals={fundamentals} />
           <TickerNews ticker={ticker} />
