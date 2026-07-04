@@ -615,12 +615,9 @@ button {
 .fund-arrow { font-size: 11px; color: var(--text-3); }
 .fund-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 14px 22px;
   margin-top: 16px;
-}
-@media (max-width: 860px) {
-  .fund-grid { grid-template-columns: repeat(2, 1fr); }
 }
 .fund-summary {
   margin: 16px 0 0;

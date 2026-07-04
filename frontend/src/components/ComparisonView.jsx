@@ -1,6 +1,7 @@
 import { fetchChart, fetchFundamentals, fetchQuote } from "../api.js";
 import useApiData from "../hooks/useApiData.js";
 import PriceCard from "./PriceCard.jsx";
+import FundamentalsSection from "./FundamentalsSection.jsx";
 import TickerSearch from "./TickerSearch.jsx";
 
 function ComparisonCard({ ticker, range, onClose }) {
@@ -9,13 +10,16 @@ function ComparisonCard({ ticker, range, onClose }) {
   const fundamentals = useApiData(() => fetchFundamentals(ticker), [ticker]);
 
   return (
-    <PriceCard
-      ticker={ticker}
-      quote={quote}
-      chart={chart}
-      fundamentals={fundamentals}
-      onClose={onClose}
-    />
+    <>
+      <PriceCard
+        ticker={ticker}
+        quote={quote}
+        chart={chart}
+        fundamentals={fundamentals}
+        onClose={onClose}
+      />
+      <FundamentalsSection ticker={ticker} fundamentals={fundamentals} />
+    </>
   );
 }
 
