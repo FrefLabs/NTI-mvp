@@ -60,7 +60,6 @@ export default function App() {
             fundamentals={fundamentals}
           />
           <FundamentalsSection ticker={ticker} fundamentals={fundamentals} />
-          <TickerNews ticker={ticker} />
         </div>
         {comparing && (
           <div className="main-col">
@@ -72,7 +71,10 @@ export default function App() {
             />
           </div>
         )}
-        <PredictionPanel prediction={prediction} fundamentals={fundamentals} />
+        <div className="side-col">
+          <PredictionPanel prediction={prediction} fundamentals={fundamentals} />
+          <TickerNews ticker={ticker} />
+        </div>
       </div>
       <div className="disclaimer">
         <span className="glyph">&#9888;</span>
