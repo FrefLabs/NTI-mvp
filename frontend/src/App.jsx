@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   fetchChart,
   fetchFundamentals,
@@ -21,6 +21,18 @@ export default function App() {
   const [range, setRange] = useState(DEFAULT_RANGE);
   const [comparing, setComparing] = useState(false);
   const [compareTicker, setCompareTicker] = useState(null);
+  const mainColRef = useRef(null);
+  const [mainColHeight, setMainColHeight] = useState(null);
+
+  useEffect(() => {
+    const el = mainColRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setMainColHeight(entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const quote = useApiData(() => fetchQuote(ticker), [ticker]);
   const chart = useApiData(() => fetchChart(ticker, range), [ticker, range]);
@@ -52,7 +64,7 @@ export default function App() {
         onToggleCompare={toggleCompare}
       />
       <div className={comparing ? "grid grid-compare" : "grid"}>
-        <div className="main-col">
+        <div className="main-col" ref={mainColRef}>
           <PriceCard
             ticker={ticker}
             quote={quote}
@@ -71,7 +83,10 @@ export default function App() {
             />
           </div>
         )}
-        <div className="side-col">
+        <div
+          className="side-col"
+          style={mainColHeight ? { height: mainColHeight } : undefined}
+        >
           <PredictionPanel prediction={prediction} fundamentals={fundamentals} />
           <TickerNews ticker={ticker} />
         </div>
