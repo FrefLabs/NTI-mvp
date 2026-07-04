@@ -22,7 +22,6 @@ export default function PredictionPanel({ prediction, fundamentals }) {
   const [expanded, setExpanded] = useState(false);
   const data = prediction.data;
   const funda = fundamentals?.data;
-  const filled = data ? Math.round((data.confidence / 100) * 20) : 0;
   const smaBullish = data && data.indicators.sma_short >= data.indicators.sma_long;
 
   return (
@@ -52,10 +51,16 @@ export default function PredictionPanel({ prediction, fundamentals }) {
               <span className="label">Nivel de confianza</span>
               <span className="value">{data.confidence}%</span>
             </div>
-            <div className="chunks">
-              {Array.from({ length: 20 }, (_, i) => (
-                <div key={i} className={i < filled ? "chunk filled" : "chunk"} />
-              ))}
+            <div className="confidence-track">
+              <div
+                className="confidence-fill"
+                style={{ width: `${data.confidence}%` }}
+              />
+            </div>
+            <div className="confidence-marks">
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
             </div>
           </div>
 

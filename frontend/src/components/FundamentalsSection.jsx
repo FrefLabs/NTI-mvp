@@ -2,7 +2,7 @@ import { useState } from "react";
 import { formatBig, money, percent, ratio } from "../format.js";
 
 export default function FundamentalsSection({ ticker, fundamentals }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const funda = fundamentals.data;
 
   return (
