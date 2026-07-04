@@ -173,9 +173,7 @@ button {
   flex-direction: column;
   gap: 16px;
   min-width: 0;
-  position: sticky;
-  top: 20px;
-  max-height: calc(100vh - 40px);
+  min-height: 0;
 }
 @media (max-width: 1300px) {
   .grid.grid-compare { grid-template-columns: 1fr 1fr; }
@@ -183,10 +181,7 @@ button {
 }
 @media (max-width: 860px) {
   .grid, .grid.grid-compare { grid-template-columns: 1fr; }
-  .side-col {
-    position: static;
-    max-height: none;
-  }
+  .side-col { height: auto !important; }
   .news-card { flex: none; }
   .news-list { overflow-y: visible; max-height: none; }
 }
